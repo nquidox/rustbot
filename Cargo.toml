@@ -1,2 +1,2 @@
 [workspace]
-members = ["bot", "config_reader"] 
+members = ["bot", "config_reader", "datab"]
