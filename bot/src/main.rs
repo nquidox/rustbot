@@ -44,26 +44,15 @@ impl EventHandler for Handler {
     }
 
     // slash commands
-    // this block creates interactions in discord chat menu
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        let new = vec![
-            ("ping", "blah blah blah"),
-            ("ring", "ding-dong!"),
-            ("duck", "quack")
-        ]; //redo this with commands from database
-
-
         if let Interaction::ApplicationCommand(command) = interaction {
-
             //checks the commands list from vector of tuples
+            let commands_list = &datab::commands_list().unwrap();
             let mut content = command.data.name.as_str();
-            for item in 0..new.len(){
-                if content == new[item].0.to_string(){
-                    content = new[item].1;
-
-                    let &from_guild = command.guild_id.unwrap().as_u64(); // gets the guild_id of msg recieved
-                    println!("{}", from_guild); // prints guild id from where command was called
-                };
+            for i in 0..commands_list.len(){
+                if content == commands_list[i].2{
+                    content = &*commands_list[i].4
+                }
             }
 
             if let Err(why) = command
@@ -81,45 +70,25 @@ impl EventHandler for Handler {
 
 
     // ready function
-
     async fn ready(&self, ctx: Context, ready: Ready) {
         // db init
         datab::check_existence();
 
         println!("{} is connected!", ready.user.name);
-        let guild_id = GuildId(682536422116294656);
 
-        // let guilds_num = ctx.cache.guilds().await.len();
-        // println!("Number of guilds in the Cache: {}", guilds_num);
-        //
-        //
-        // let guilds = &ctx.cache.guilds().await;
-        // for guild in guilds{
-        //     // let tname = "test";
-        //     println!("{}", &guild);
-        //     datab::check_servers_tables(&connection, &guild.to_string());
-        // }
-        // println!("Guilds in the Cache: {:?}", guilds);
+        let commands_list = &datab::commands_list().unwrap();
+        for i in 0..commands_list.len() {
+            println!("Iteration {}, commands list len {}", i, commands_list.len());
+            let guild_id = GuildId(commands_list[i].0.clone());
 
-        // let guilds2 = ctx.cache.guild(682536422116294656).await.unwrap();
-        // println!("Guild info: {:?}", guilds2.name);
-
-
-
-        let commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
-            commands
-                .create_application_command(|command| {
-                    command.name("ping").description("A ping command")
+            // creates only 1 command because of rewrite on every iteration, needs fixing
+            let com = GuildId::set_application_commands(&guild_id, &ctx.http, |commands|{
+                commands.create_application_command(|command|{
+                    command.name(&commands_list[i].2).description(&commands_list[i].3)
                 })
-                .create_application_command(|command| {
-                    command.name("ring").description("Ring a bell")
-                })
-                .create_application_command(|command|{
-                    command.name("duck").description("duck")
-                })
-        }).await;
-        println!("I now have the following guild slash commands: {:#?}", commands);
-
+            }).await;
+            println!("{:#?}", com);
+        }
     }
 }
 
